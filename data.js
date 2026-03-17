@@ -819,6 +819,11 @@ const DECISION_TREE = {
     { id: "gypsum", nameKey: "sub_gypsum", icon: "⬜" },
     { id: "metal", nameKey: "sub_metal", icon: "⚙️" }
   ],
+  // Step 3.5: Surface — wall or floor?
+  surface: [
+    { id: "floor", nameKey: "surface_floor", icon: "⬇️" },
+    { id: "wall", nameKey: "surface_wall", icon: "⬆️" }
+  ],
   // Step 4: Finish type
   finish: [
     { id: "ceramic", nameKey: "fin_ceramic", icon: "🔲" },

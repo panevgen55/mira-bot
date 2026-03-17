@@ -10,13 +10,10 @@ let currentState = {};
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Try to detect language from browser
-  const browserLang = navigator.language?.slice(0, 2);
-  const langMap = { uk: 'uk', ru: 'ru', et: 'et', da: 'da', pl: 'pl', nb: 'no', nn: 'no', no: 'no', sv: 'sv', fi: 'fi', lv: 'lv', lt: 'lt' };
-  if (langMap[browserLang]) window.currentLang = langMap[browserLang];
-
+  // Always start in English
+  window.currentLang = 'en';
   updateUILanguage();
-  showWelcome();
+  showLanguagePrompt();
 });
 
 function updateUILanguage() {
@@ -84,6 +81,27 @@ function pushNav(fn) {
 }
 
 // ============================================================
+// LANGUAGE PROMPT (First load)
+// ============================================================
+function showLanguagePrompt() {
+  navigationStack = [];
+  let btns = '';
+  for (const [code, tr] of Object.entries(TRANSLATIONS)) {
+    btns += `<button class="btn" onclick="selectInitialLanguage('${code}')">${tr.flag} ${tr.lang_name}</button>`;
+  }
+  addBotMessage(`<strong>Welcome! / Ласкаво просимо! / Добро пожаловать!</strong>
+    <p style="font-size:13px;color:#666;margin:6px 0">Please select your language / Оберіть мову / Выберите язык:</p>
+    <div class="lang-grid">${btns}</div>`);
+}
+
+function selectInitialLanguage(code) {
+  window.currentLang = code;
+  updateUILanguage();
+  addBotMessage(`✅ ${TRANSLATIONS[code].flag} ${TRANSLATIONS[code].lang_name}`);
+  showWelcome();
+}
+
+// ============================================================
 // WELCOME & MAIN MENU
 // ============================================================
 function showWelcome() {
@@ -96,24 +114,12 @@ function showMainMenu() {
   navigationStack = [showMainMenu];
   addBotMessage(`
     <div class="btn-grid">
-      <button class="btn accent" onclick="showSystemBuilder()">
-        <span class="btn-icon">🏗️</span> ${t('menu_system')}
-      </button>
-      <button class="btn accent" onclick="showCalculatorMenu()">
-        <span class="btn-icon">📊</span> ${t('menu_calculator')}
-      </button>
-      <button class="btn" onclick="showProductCatalog()">
-        <span class="btn-icon">📦</span> ${t('menu_products')}
-      </button>
-      <button class="btn" onclick="showSolutions()">
-        <span class="btn-icon">💡</span> ${t('menu_solutions')}
-      </button>
-      <button class="btn" onclick="showSupport()">
-        <span class="btn-icon">📞</span> ${t('menu_support')}
-      </button>
-      <button class="btn" onclick="showLanguageSelector()">
-        <span class="btn-icon">🌍</span> ${t('menu_language')}
-      </button>
+      <button class="btn accent" onclick="showSystemBuilder()">${t('menu_system')}</button>
+      <button class="btn accent" onclick="showCalculatorMenu()">${t('menu_calculator')}</button>
+      <button class="btn" onclick="showProductCatalog()">${t('menu_products')}</button>
+      <button class="btn" onclick="showSolutions()">${t('menu_solutions')}</button>
+      <button class="btn" onclick="showSupport()">${t('menu_support')}</button>
+      <button class="btn" onclick="showLanguageSelector()">${t('menu_language')}</button>
     </div>
   `);
 }
@@ -207,11 +213,29 @@ function selectSubstrate(sub) {
     return showSystemResult('wooden_floor');
   }
 
+  askSurface();
+}
+
+function askSurface() {
+  const opts = DECISION_TREE.surface;
+  let btns = opts.map(o =>
+    `<button class="btn" onclick="selectSurface('${o.id}')"><span class="btn-icon">${o.icon}</span> ${t(o.nameKey)}</button>`
+  ).join('');
+  addBotMessage(`${t('sb_step_surface')}<div class="btn-grid">${btns}</div>${navButtons()}`);
+}
+
+function selectSurface(surface) {
+  currentState.surface = surface;
+  addUserMessage(t(`surface_${surface}`));
   askFinish();
 }
 
 function askFinish() {
-  const fins = DECISION_TREE.finish;
+  let fins = DECISION_TREE.finish;
+  // PVC/Vinyl only makes sense for floors
+  if (currentState.surface === 'wall') {
+    fins = fins.filter(f => f.id !== 'pvc_vinyl');
+  }
   let btns = fins.map(f =>
     `<button class="btn" onclick="selectFinish('${f.id}')"><span class="btn-icon">${f.icon}</span> ${t(f.nameKey)}</button>`
   ).join('');
@@ -227,7 +251,13 @@ function selectFinish(fin) {
     return showLevelingOnlyResult();
   }
 
-  askHeatedFloor();
+  // Heated floor question only for floors, not walls
+  if (currentState.surface === 'floor') {
+    askHeatedFloor();
+  } else {
+    currentState.heated = 'no';
+    generateRecommendation();
+  }
 }
 
 function askHeatedFloor() {
@@ -251,7 +281,8 @@ function generateRecommendation() {
   if (s.heated === 'yes') return showSystemResult('heated_floor');
   if (s.location === 'exterior' && (s.room === 'terrace' || s.room === 'balcony')) return showSystemResult('terrace');
   if (s.room === 'wet') {
-    if (s.finish === 'large_format') return showSystemResult('bathroom_large_tile');
+    if (s.finish === 'large_format' && s.surface === 'floor') return showSystemResult('bathroom_large_tile');
+    if (s.finish === 'large_format' && s.surface === 'wall') return showSystemResult('bathroom_standard');
     return showSystemResult('bathroom_standard');
   }
 
@@ -265,10 +296,15 @@ function showDryRoomResult() {
   let adhesive;
   let grout;
 
-  // Select adhesive based on tile type
-  if (s.finish === 'large_format') adhesive = findProduct('3250');
-  else if (s.finish === 'natural_stone' || s.finish === 'glass_mosaic') adhesive = findProduct('zfix') || findProduct('3130');
-  else adhesive = findProduct('3110');
+  // Select adhesive based on tile type and surface
+  if (s.finish === 'large_format') {
+    // 3250 gigafix floor — ONLY for floors! Walls use 3130.
+    adhesive = (s.surface === 'floor') ? findProduct('3250') : findProduct('3130');
+  } else if (s.finish === 'natural_stone' || s.finish === 'glass_mosaic') {
+    adhesive = findProduct('zfix') || findProduct('3130');
+  } else {
+    adhesive = findProduct('3110');
+  }
 
   grout = findProduct('sc');
 
@@ -442,10 +478,10 @@ function showCalculatorMenu() {
   addBotMessage(`<strong>${t('calc_title')}</strong>
   <p style="font-size:13px;color:#666;margin:4px 0">${t('calc_select')}</p>
   <div class="btn-grid">
-    <button class="btn accent" onclick="showCalcWaterproofing()"><span class="btn-icon">💧</span> ${t('calc_waterproofing')}</button>
-    <button class="btn accent" onclick="showCalcLeveling()"><span class="btn-icon">📐</span> ${t('calc_leveling')}</button>
-    <button class="btn" onclick="showCalcGrout()"><span class="btn-icon">✨</span> ${t('calc_grout')}</button>
-    <button class="btn" onclick="showCalcAdhesive()"><span class="btn-icon">🧱</span> ${t('calc_adhesive')}</button>
+    <button class="btn accent" onclick="showCalcWaterproofing()">${t('calc_waterproofing')}</button>
+    <button class="btn accent" onclick="showCalcLeveling()">${t('calc_leveling')}</button>
+    <button class="btn" onclick="showCalcGrout()">${t('calc_grout')}</button>
+    <button class="btn" onclick="showCalcAdhesive()">${t('calc_adhesive')}</button>
   </div>${navButtons()}`);
 }
 
@@ -769,7 +805,7 @@ function processUserQuery(query) {
   // No match
   addBotMessage(`${t('chat_no_match')}
   <div class="btn-grid" style="margin-top:8px">
-    <button class="btn" onclick="showMainMenu()"><span class="btn-icon">🏠</span> ${t('home')}</button>
-    <button class="btn" onclick="showProductCatalog()"><span class="btn-icon">📦</span> ${t('menu_products')}</button>
+    <button class="btn" onclick="showMainMenu()">${t('home')}</button>
+    <button class="btn" onclick="showProductCatalog()">${t('menu_products')}</button>
   </div>`);
 }
