@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mira Consultant — Building Materials Expert</title>
+  <meta name="description" content="Mira intelligent construction materials consultant bot. Product selection, calculators, system solutions.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗️</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <div class="header-left">
+        <div class="logo">
+          <img src="https://www.mira.ee/wp-content/uploads/2020/06/mira-logo.svg" alt="Mira" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="logo-fallback" style="display:none">MIRA</span>
+        </div>
+        <div class="header-text">
+          <h1 id="headerTitle">Mira Consultant</h1>
+          <p id="headerSubtitle">Building Materials Expert</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="langBtn" class="lang-toggle" onclick="showLanguageSelector()">
+          <span id="currentFlag">🇬🇧</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Chat Area -->
+    <main id="chatArea">
+      <!-- Messages will be inserted here -->
+    </main>
+
+    <!-- Input Area -->
+    <footer id="inputArea">
+      <div class="input-wrap">
+        <input type="text" id="userInput" placeholder="Type your question..."
+               onkeydown="if(event.key==='Enter')sendMessage()">
+        <button id="sendBtn" onclick="sendMessage()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

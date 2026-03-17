@@ -1,0 +1,12 @@
+{
+  "name": "mira-bot",
+  "version": "1.0.0",
+  "description": "Mira Building Materials Consultant Bot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["mira", "construction", "building-materials", "consultant"],
+  "license": "MIT"
+}
