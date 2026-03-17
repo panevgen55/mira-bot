@@ -8,5 +8,8 @@
     "dev": "node server.js"
   },
   "keywords": ["mira", "construction", "building-materials", "consultant"],
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

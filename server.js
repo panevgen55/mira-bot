@@ -21,6 +21,13 @@ const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
   let pathname = decodeURIComponent(parsedUrl.pathname);
 
+  // Health check endpoint
+  if (pathname === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', dir: STATIC_DIR }));
+    return;
+  }
+
   // Default to index.html
   if (pathname === '/') pathname = '/index.html';
 
